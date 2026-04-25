@@ -1,0 +1,6 @@
+# exclude music files
+*.mp3
+*.wav
+
+.DS_Store
+Thumbs.db
