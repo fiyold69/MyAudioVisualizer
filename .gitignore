@@ -2,5 +2,8 @@
 *.mp3
 *.wav
 
+# exclude frame files
+*.png
+
 .DS_Store
 Thumbs.db
