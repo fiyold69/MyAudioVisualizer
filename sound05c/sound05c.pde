@@ -8,6 +8,7 @@ AudioPlayer player;
 FFT fft;
 
 ArrayList<Particle> ptcls = new ArrayList<Particle>();
+String audioName;
 int threshold = 70;
 
 
@@ -33,7 +34,8 @@ void fileSelected(File selection)
         player = minim.loadFile( selection.getAbsolutePath(), 1024);
         fft = new FFT(player.bufferSize(), player.sampleRate());
         player.play();
-        println("Start playback: " + selection.getName());
+        audioName = selection.getName();
+        println("Start playback: " + audioName);
     }
 }
 
@@ -44,7 +46,12 @@ void draw()
     background(0);
     noStroke();
 
-    if (player == null || !player.isPlaying() ) return;
+    if (player == null || !player.isPlaying() ) {
+        fill(255, map(millis() % 2000, 0, 2000, 255, 0)); // 点滅効果
+        textAlign(CENTER);
+        text("NOW PLAYING: " + audioName, width/2, 40);
+        return;
+    }
 
     fft.forward( player.mix );
 
