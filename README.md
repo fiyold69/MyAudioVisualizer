@@ -2,7 +2,7 @@
 This is the Audio Visualizer
 
 
-Language: Java (Processing 4.x)
+Language: Java (Processing 4.x)  
 Library: Minim (Audio Analysis / FFT)
 
 

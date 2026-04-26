@@ -1,3 +1,4 @@
+import java.lang.Math.*;
 import ddf.minim.*;
 import ddf.minim.analysis.*;
 
@@ -48,21 +49,18 @@ void draw()
     fft.forward( player.mix );
 
 
-    // 1. Extract high-frequency energy
-    float hiEnergy = fft.calcAvg(3000, 20000) * 400;
+    // 1. Extract high-frequency energy and Apply logarithmic transformation
+    float hiEnergy = 20 * log(1.0 + fft.calcAvg(3000, 20000) * 400);
     // The Ratio is 400 times
-
-    // Apply logarithmic transformation and smoothing
-    float smoothHi = lerp(0, log(1.0 + hiEnergy) * 100, 0.2);
 
 
     // 2. Generate a particle when the high-frequency sound exceeds the threshold
-    if (smoothHi > threshold) {
+    if (hiEnergy > threshold) {
         // the Louder the sound, the more of it is produced
-        int count = (int)map(smoothHi, threshold, 100, 1, 10);
+        int count = (int)map(hiEnergy, threshold, 100, 1, 10);
         for (int i = 0; i < count; i++) {
             // Released from elevated areas such as the center of the screen
-            ptcls.add(new Particle(random(width), height / 2, map(smoothHi, threshold, 100, 180, 250)));
+            ptcls.add(new Particle(random(width), height / 2, map(hiEnergy, threshold, 100, 180, 250)));
         }
     }
 
@@ -72,7 +70,7 @@ void draw()
         Particle p = ptcls.get(i);
         p.update();
         // Pass the intensity of the high notes directly to Brightness
-        p.display(map(smoothHi, 0, 100, 30, 100));
+        p.display(map(hiEnergy, 0, 100, 30, 100));
 
         if (p.isDead()) {
             ptcls.remove(i);
