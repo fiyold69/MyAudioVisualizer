@@ -58,6 +58,8 @@ void draw()
 
     // 1. Extract high-frequency energy and Apply logarithmic transformation
     float hiEnergy = 20 * log(1.0 + fft.calcAvg(3000, 20000) * 400);
+    float kickEnergy = fft.calcAvg(80, 200);
+    float subBassEnergy = fft.calcAvg(20, 80);
     // The Ratio is 400 times
 
 
@@ -75,7 +77,8 @@ void draw()
     // 3. particle updates and rendering
     for (int i = ptcls.size() - 1; i >= 0; i--) {
         Particle p = ptcls.get(i);
-        p.update();
+        p.glitch(subBassEnergy);
+        p.update(kickEnergy);
         // Pass the intensity of the high notes directly to Brightness
         p.display(map(hiEnergy, 0, 100, 30, 100));
 
