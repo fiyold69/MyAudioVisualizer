@@ -58,7 +58,7 @@ void draw()
 
     // 1. Extract high-frequency energy and Apply logarithmic transformation
     float hiEnergy = 20 * log(1.0 + fft.calcAvg(3000, 20000) * 400);
-    float kickEnergy = fft.calcAvg(80, 200);
+    float kickEnergy = fft.calcAvg(60, 150);
     float subBassEnergy = fft.calcAvg(20, 80);
     // The Ratio is 400 times
 
@@ -77,17 +77,46 @@ void draw()
     // 3. particle updates and rendering
     for (int i = ptcls.size() - 1; i >= 0; i--) {
         Particle p = ptcls.get(i);
-        p.glitch(subBassEnergy);
-        p.update(kickEnergy);
+        p.update(fft.calcAvg(3000, 20000));
         // Pass the intensity of the high notes directly to Brightness
-        p.display(map(hiEnergy, 0, 100, 30, 100));
+        p.display(map(hiEnergy, 0, 100, 20, 100), (int)kickEnergy / 15);
 
         if (p.isDead()) {
             ptcls.remove(i);
         }
     }
 
+    if (subBassEnergy > 50.0) glitchFilter(subBassEnergy);
+
     // saveFrame("frames/######.png");
+}
+
+
+void glitchFilter(float energy)
+{
+    // 1. load pixel data
+    loadPixels();
+
+    int numStrips = (int)random(10, 30);
+    float maxOffset = energy * 100;
+
+    // 2. 
+    for (int i = 0; i < numStrips; i++) {
+        int h = (int)random(5, 50);
+        int y = (int)random(0, height - h);
+
+        int offsetX = (int)random(-maxOffset, maxOffset);
+
+        if (random(1) > 0.1) {
+            copy(0, y, width, h, offsetX, y, width, h);
+        }
+    }
+
+    if (energy > 60.0 && random(1) > 0.95) {
+        //filter(INVERT);
+        //filter(POSTERIZE, 2);
+        filter(DILATE);
+    }
 }
 
 

@@ -1,7 +1,6 @@
 class Particle
 {
     PVector pos, vel, acc;
-    float glitchOffset = 0;
     float lifespan;
     float friction = 0.92;
     float h; // color (Hue)
@@ -19,22 +18,11 @@ class Particle
     }
 
 
-    void glitch(float energy) 
-    {
-        if (energy > 50.0 && random(1) > 0.95) {
-            glitchOffset = energy * random(-50, 50);
-        } else {
-            glitchOffset *= 0.5;
-        }
-    }
-
-
     void update(float energy)
     {
         if (energy > 0.0) {
             PVector direction = vel.copy().normalize();
-            direction.mult(energy * 0.02);
-            acc.add(direction);
+            acc.add(direction.mult(energy * 0.5)); // energy * 0.015
         }
         vel.add(acc);
         vel.mult(friction);
@@ -44,15 +32,12 @@ class Particle
     }
 
 
-    void display(float brightness)
+    void display(float brightness, int ptclSize)
     {
-        pushMatrix();
-        translate(glitchOffset, 0);
         // Increase the Brightness according to the intensity of the high-frequencies
         stroke(h, 80, brightness, lifespan);
-        strokeWeight(5);
+        strokeWeight(5 + ptclSize);
         point(pos.x, pos.y);
-        popMatrix();
     }
 
 
