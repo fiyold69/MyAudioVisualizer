@@ -47,7 +47,7 @@ void draw()
     noStroke();
 
     if (player == null || !player.isPlaying() ) {
-        fill(255, map(millis() % 2000, 0, 2000, 255, 0)); // 点滅効果
+        fill(255, map(millis() % 2000, 0, 2000, 255, 0));
         textAlign(CENTER);
         text("NOW PLAYING: " + audioName, width/2, 40);
         return;
@@ -56,10 +56,10 @@ void draw()
     fft.forward( player.mix );
 
 
-    // 1. Extract high-frequency energy and Apply logarithmic transformation
+    // 1. Extract energy and Apply logarithmic transformation
     float hiEnergy = 20 * log(1.0 + fft.calcAvg(3000, 20000) * 400);
     float kickEnergy = fft.calcAvg(60, 150);
-    float subBassEnergy = fft.calcAvg(20, 80);
+    float subBassEnergy = fft.calcAvg(20, 60);
     // The Ratio is 400 times
 
 
@@ -114,8 +114,8 @@ void glitchFilter(float energy)
 
     if (energy > 60.0 && random(1) > 0.95) {
         //filter(INVERT);
-        //filter(POSTERIZE, 2);
-        filter(DILATE);
+        filter(POSTERIZE, 2);
+        //filter(DILATE);
     }
 }
 
