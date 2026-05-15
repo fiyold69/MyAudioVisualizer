@@ -9,13 +9,14 @@ FFT fft;
 
 ArrayList<Particle> ptcls = new ArrayList<Particle>();
 String audioName;
-int threshold = 70;
+int threshold = 40;
 
 
 
 void setup()
 {
-    size(1024, 576, P2D);
+    size(1280, 720, P2D);
+    //size(1920, 1080, P2D);
     colorMode(HSB, 360, 100, 100, 255);
 
     minim = new Minim(this);
@@ -33,7 +34,7 @@ void fileSelected(File selection)
     } else {
         player = minim.loadFile( selection.getAbsolutePath(), 1024);
         fft = new FFT(player.bufferSize(), player.sampleRate());
-        player.play();
+        player.loop();
         audioName = selection.getName();
         println("Start playback: " + audioName);
     }
@@ -57,10 +58,11 @@ void draw()
 
 
     // 1. Extract energy and Apply logarithmic transformation
-    float hiEnergy = 20 * log(1.0 + fft.calcAvg(3000, 20000) * 400);
+    int factor = 70;
+    float hiEnergy = fft.calcAvg(3000, 20000) * factor;
+    //println(hiEnergy);
     float kickEnergy = fft.calcAvg(60, 150);
     float subBassEnergy = fft.calcAvg(20, 60);
-    // The Ratio is 400 times
 
 
     // 2. Generate a particle when the high-frequency sound exceeds the threshold
@@ -77,9 +79,9 @@ void draw()
     // 3. particle updates and rendering
     for (int i = ptcls.size() - 1; i >= 0; i--) {
         Particle p = ptcls.get(i);
-        p.update(fft.calcAvg(3000, 20000));
+        p.update(hiEnergy / 40);
         // Pass the intensity of the high notes directly to Brightness
-        p.display(map(hiEnergy, 0, 100, 20, 100), (int)kickEnergy / 15);
+        p.display(map(hiEnergy, 0, 100, 20, 100), (int)kickEnergy / 10);
 
         if (p.isDead()) {
             ptcls.remove(i);
@@ -98,7 +100,7 @@ void glitchFilter(float energy)
     loadPixels();
 
     int numStrips = (int)random(10, 30);
-    float maxOffset = energy * 100;
+    float maxOffset = energy * 300;
 
     // 2. 
     for (int i = 0; i < numStrips; i++) {
@@ -112,7 +114,7 @@ void glitchFilter(float energy)
         }
     }
 
-    if (energy > 60.0 && random(1) > 0.95) {
+    if (energy > 80.0 && random(1) > 0.95) {
         //filter(INVERT);
         filter(POSTERIZE, 2);
         //filter(DILATE);
@@ -125,7 +127,7 @@ void mousePressed()
     if ( player.isPlaying() ) {
         player.pause();
     } else {
-        player.play();
+        player.loop();
     }
 }
 
