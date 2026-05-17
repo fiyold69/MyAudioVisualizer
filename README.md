@@ -1,4 +1,4 @@
-# Aural-Particle Dynamics (APD)
+# Particles Audio Visualizer
 
 「音響工学 ✕ 物理演算 ✕ ミニマリズム」が融合した、リアルタイム・オーディオダイナミック・ビジュアライザー
 
