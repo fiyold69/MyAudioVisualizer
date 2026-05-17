@@ -1,16 +1,132 @@
-# MyAudioVisualizer
-This is the Audio Visualizer
+# Aural-Particle Dynamics (APD)
 
+「音響工学 ✕ 物理演算 ✕ ミニマリズム」が融合した、リアルタイム・オーディオダイナミック・ビジュアライザー
 
-Language: Java (Processing 4.x)  
-Library: Minim (Audio Analysis / FFT)
+本プロジェクトは、音楽の周波数特性（FFT）をリアルタイムに解析し、そのエネルギーを物理シミュレーションを施した粒子（Particle）の挙動、および画面全体のポストエフェクトへと昇華させるデスクトップ・アプリケーションです。単なる音量の可視化に留まらず、ダンスミュージックのキック・重低音・高音それぞれの帯域に対し異なるビジュアル応答を割り当て、楽曲構造のピュアな伝達を追求しました。
 
+## 📺 デモ（成果物イメージ）
 
-### Note:
-Your audio files only can use on "sound04c", "sound05c", or newer.
+https://github.com/fiyold69/MyAudioVisualizer/raw/main/demo.mp4
 
+※動画では、キックのアタックに同期した粒子の肥大化、重低音による画面の引きちぎれ（グリッチ）、高音による粒子の発生と加速を確認できます。
 
+## 🛠 テクニカルスタック & 構成
 
-# ProcessingとMinimライブラリを用いたオーディオビジュアライザー
+- **Language**: Java (Processing 4.x コア環境)
+- **Audio Engine**: Minim (FFT / Audio Buffer Analysis)
+- **IDE**: Visual Studio Code
+- **Version Control**: Git / GitHub（ブランチ管理、`.gitignore`を用いた環境分離）
+- **Core Physics**: ベクトル演算（`PVector`）、慣性運動、摩擦減衰シミュレーション
+- **Visual Logic**: ピクセルバッファ操作（`copy()`）、HSB色空間、ポストエフェクト・フィルター（`POSTERIZE`）
 
+## 🎯 技術的アピールポイント
 
+### 1. リアルタイム描画と物理シミュレーションの最適化
+
+#### 💡 慣性の法則と速度ベクトルの一致
+
+粒子が音楽のアタック（高音帯）に反応して加速する際、単なるランダムな拡散ではなく、**「粒子が現在持っている速度ベクトル（`vel`）の向きを抽出（正規化: `normalize()`）」し、その進行方向に対して加速度（`acc`）を上乗せする**物理ロジックを実装しました。
+
+```java
+PVector direction = vel.copy().normalize();
+acc.add(direction.mult(energy * 0.5));
+```
+
+ここに摩擦係数（`friction = 0.92`）による減衰を加えることで、「音が鳴った瞬間に進行方向へ鋭く加速し、音が消えると慣性で滑りながら止まる」というメリハリと説得力のあるジューシーな運動（緩急）を生み出しています。
+
+#### 💡 メモリマネジメントと逆回しループ（Reverse Iteration）
+
+画面上に最大数百個生成されるパーティクルのメモリ管理において、寿命（`lifespan`）が尽きたインスタンスを `ArrayList` から安全に破棄する仕組みが必要です。
+
+通常の `for-each` 文では要素削除時に `ConcurrentModificationException` が発生し、順回しループではインデックスの「前詰め」による処理の飛び越しバグが発生します。本システムでは、リストの末尾から先頭に向かって逆順に走査する **逆回しループ** を採用。
+
+```java
+for (int i = ptcls.size() - 1; i >= 0; i--) {
+    Particle p = ptcls.get(i);
+    p.update(hiEnergy / 40);
+    p.display(...);
+    if (p.isDead()) ptcls.remove(i);
+}
+```
+
+インデックスの破綻を防ぎ、安全かつ最小限のCPUコストで不要インスタンスのメモリ解放を行っています。
+
+#### 💡 高速ピクセルバッファ操作によるポストエフェクト（Glitch）
+
+重低音（20Hz〜60Hz）の衝撃を表現するため、完成した描画バッファをY軸方向でランダムに分断し、X軸方向へ瞬間的にスライドさせるデジタル・グリッチフィルターを自作しました。
+
+ピクセルを1つずつ全走査する高コストな処理を避け、Processing内部の低レイヤ高速コピーメソッド `copy()` を活用。画面全体のテクスチャを帯状に高速複製して貼り付けることで、60FPSの描画レートを維持したまま、空間そのものが破壊されるようなハードな視覚効果を実現しています。さらに、超低音のエネルギーが閾値を超えた瞬間にはランダムで `POSTERIZE` フィルターを瞬間挿入し、ビジュアルの密度を一段引き上げています。
+
+### 2. 拡張性と保守性を意識した設計
+
+#### 💡 非同期処理におけるガードレール実装
+
+Processing標準の `selectInput()` を用いた楽曲ファイル読み込みは非同期処理であり、ファイルロードが完了する前にメインの `draw()` ループが未初期化のインスタンス（`fft` や `player`）を参照し、`NullPointerException (NPE)` を発生させるバグに直面しました。
+
+これに対し、`player` の実体生成と再生開始を検知して描画を安全にスキップ・待機させる**防衛的プログラミング（ガードレール実装）**を徹底しています。
+
+```java
+if (player == null || !player.isPlaying()) {
+    // NOW PLAYING テキストを表示しつつ描画処理は安全に return
+    return;
+}
+```
+
+非同期ロード環境を意識した安全な状態管理を実装しています。
+
+### 3. 「人間の感覚」に寄り添う表現設計
+
+#### 💡 周波数帯域ごとの役割分離
+
+FFTから得られたスペクトルを **「高音 (3,000Hz〜20,000Hz)」「キック (60Hz〜150Hz)」「重低音 (20Hz〜60Hz)」** の3帯域に明確に切り分け、それぞれを異なる視覚パラメータへマッピングしました。
+
+| 帯域 | 担当する視覚要素 |
+| --- | --- |
+| 高音（`hiEnergy`） | 粒子の生成数・色相（Hue）・加速度・輝度 |
+| キック（`kickEnergy`） | 粒子の太さ（`strokeWeight`） |
+| 重低音（`subBassEnergy`） | 画面全体のグリッチ & `POSTERIZE` |
+
+帯域ごとに「役割」を持たせることで、楽曲のどの要素が今鳴っているかが視覚的に判別できる構造を作っています。
+
+#### 💡 表現のピボット：Terrain（地形）の廃止とミニマリズムへの遷移
+
+当初は「3D地形の崩壊」というダイナミックな表現を検証していましたが、情報過多により個々の粒子の挙動や音楽の細部（高音のスピード感や超低音のグリッチ）が埋もれてしまうというUX上の問題を発見しました。
+
+そこで、**「不要なノイズを削ぎ落とし、1つの要素に表現を凝縮する」というミニマリズム的アプローチへピボット**。地形を丸ごと削除し、すべてのエネルギーをパーティクルの「色・速さ・大きさ」に集約しました。
+
+結果として、背景の「黒（静寂）」と粒子の「光（音響）」の対比が際立ち、音楽の構造がよりピュアに伝わる画面構成へと進化させています。
+
+## 📂 ディレクトリ構成
+
+```plaintext
+MyAudioVisualizer/
+│
+├── MyAudioVisualizer.pde   # FFT解析、ポストエフェクト、イベント管理（司令塔）
+├── Particle.pde            # 物理演算、各種パラメータの状態保持・描画（描画オブジェクト）
+├── .gitignore              # 大容量MP3ファイル、環境依存のシステムファイルを除外
+└── README.md               # 本ドキュメント
+```
+
+## 🚀 導入・実行方法
+
+1. **Processingのインストール**: [Processing公式サイト](https://processing.org/) より、Processing 4.x以降をインストールしてください。
+2. **ライブラリの追加**: Processing IDEを開き、`スケッチ > ライブラリをインポート > ライブラリを追加` から **「Minim」** を検索し、インストールします。
+3. **ファイルの配置**: 本リポジトリをクローン、もしくはダウンロードします。
+4. **実行**: `MyAudioVisualizer.pde` を Processing IDE で開き、実行ボタンを押します。起動時にファイル選択ダイアログが立ち上がるため、任意のMP3ファイルを選択してください。
+
+## 🎮 操作方法
+
+| 入力 | 動作 |
+| --- | --- |
+| **マウスクリック** | 再生／一時停止のトグル |
+| **`→`（右矢印キー）** | 10秒スキップ（早送り） |
+| **`←`（左矢印キー）** | 10秒戻る（巻き戻し） |
+
+## 📈 開発の足跡（コミットメッセージの作法）
+
+本プロジェクトでは、チーム開発を想定し、Semantic Commit Messagesの作法に準拠したGit運用を行っています。
+
+- `feat:` add file selection dialog via selectInput() for intuitive song loading（機能追加）
+- `fix:` implement guardrail to prevent NullPointerException in draw()（バグ修正）
+- `refactor:` separate frequency-band logic for cleaner Main / Particle responsibility（設計改善）
+- `adj:` tune friction coefficient and energy multiplier for realistic particle physics（微調整）

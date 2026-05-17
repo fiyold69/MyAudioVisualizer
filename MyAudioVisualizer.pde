@@ -16,6 +16,7 @@ int threshold = 40;
 void setup()
 {
     size(1280, 720, P2D);
+    frameRate(30);
     //size(1920, 1080, P2D);
     colorMode(HSB, 360, 100, 100, 255);
 
@@ -58,7 +59,7 @@ void draw()
 
 
     // 1. Extract energy and Apply logarithmic transformation
-    int factor = 70;
+    int factor = 80;
     float hiEnergy = fft.calcAvg(3000, 20000) * factor;
     //println(hiEnergy);
     float kickEnergy = fft.calcAvg(60, 150);
@@ -90,7 +91,7 @@ void draw()
 
     if (subBassEnergy > 50.0) glitchFilter(subBassEnergy);
 
-    // saveFrame("frames/######.png");
+    saveFrame("frames/######.png");
 }
 
 

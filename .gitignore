@@ -3,6 +3,7 @@
 *.wav
 
 # exclude frame files
+frames/
 *.png
 
 .DS_Store
